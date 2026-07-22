@@ -591,7 +591,7 @@ def handle_message(event):
     # ==========================================
     # 狀況 1：客人主動喚醒 AI
     # ==========================================
-    if user_message == "呼叫AI" or user_message == "切換AI":
+    if user_message == "智能客服" or user_message == "切換AI":
         user_status[user_id] = {"mode": "ai", "time": current_time}
         line_bot_api.reply_message(
             event.reply_token,
@@ -612,7 +612,7 @@ def handle_message(event):
         if 0 <= current_hour < 9:
             reply_text = "現在是休息時間，目前無人工客服在線。請您留下聯絡方式或問題，我們會在上班後第一時間回覆您！"
         else:
-            reply_text = "請稍後，已為您通知專員，約 5 分鐘內將有專員為您服務！\n(若專員服務完畢，需重新喚醒AI，請輸入「呼叫AI」)"
+            reply_text = "請稍後，已為您通知專員，約 5 分鐘內將有專員為您服務！\n(若專員服務完畢，需重新喚醒智能客服，請輸入「智能客服」)"
         
         user_status[user_id] = {
             "mode": "human",
