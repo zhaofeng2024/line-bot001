@@ -594,27 +594,33 @@ def handle_message(event):
     current_time = time.time()
     
     # 狀況 1：客人主動喚醒 AI
-    if user_message == "呼叫AI" or user_message == "切換AI":
+    if user_message == "智能客服" or user_message == "切換AI":
         # 把狀態改回 AI
         user_status[user_id] = {"mode": "ai", "time": current_time}
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text="AI 客服已重新上線！請問還有什麼我可以幫忙的嗎？")
+            TextSendMessage(text="智能客服已重新上線！請問還有什麼我可以幫忙的嗎？")
         )
         return
 
+
     # 狀況 2：客人要求轉人工
-    if "轉人工" in user_message:
+    # 定義多個觸發關鍵字，你可以隨時在括號裡面新增！
+    human_keywords = ["轉人工", "呼叫人工", "找客服", "真人", "專員"]
+    
+    # 只要客人的訊息包含上面任何一個詞，就會觸發
+    if any(keyword in user_message for keyword in human_keywords):
         tz = datetime.timezone(datetime.timedelta(hours=8))
         now = datetime.datetime.now(tz)
         current_hour = now.hour
 
+        # 凌晨 0 點到 9 點的休息時間判斷
         if 0 <= current_hour < 9:
             reply_text = "現在是休息時間，目前無人工客服在線。請您留下聯絡方式或問題，我們會在上班後第一時間回覆您！"
         else:
-            reply_text = "請稍後，已為您通知專員，約 5 分鐘內將有專員為您服務！\n(若專員服務完畢，需重新喚醒AI，請輸入「呼叫AI」)"
+            reply_text = "請稍後，已為您通知專員，約 5 分鐘內將有專員為您服務！\n(若專員服務完畢，需重新喚醒智能客服，請輸入「智能客服」)"
         
-        # 升級這裡！不只記錄人工模式，還把「當下的時間」記錄下來
+        # 記錄人工模式與當下時間
         user_status[user_id] = {
             "mode": "human",
             "time": current_time
