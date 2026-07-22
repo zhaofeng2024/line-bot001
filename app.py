@@ -31,7 +31,7 @@ from linebot.models import (
     TextComponent,
     SeparatorComponent,
     ButtonComponent,
-    UriAction,
+    Action,
     IconComponent,
 )
 
