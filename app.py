@@ -11,6 +11,7 @@
 """
 
 import os
+import google.generativeai as genai
 import re
 import opencc
 from flask import Flask, request, abort
@@ -560,25 +561,23 @@ def health_check():
 # =============================================================================
 
 @handler.add(MessageEvent, message=TextMessage)
-def handle_text_message(event):
-    """
-    處理文字訊息事件
-    根據使用者傳入的文字內容，生成對應的回覆訊息。
-    """
-    user_text = event.message.text
-    user_id = event.source.user_id
-
-    print(f"💬 使用者 {user_id} 傳來：{user_text}")
-
+def handle_message(event):
+    user_message = event.message.text
+    
     try:
-        reply_messages = generate_reply(user_text)
-        line_bot_api.reply_message(
-            event.reply_token,
-            reply_messages
-        )
-        print(f"✅ 已回覆 {len(reply_messages)} 則訊息")
+        # 呼叫 Gemini 幫忙想回答
+        response = gemini_model.generate_content(user_message)
+        reply_text = response.text
+        
     except Exception as e:
-        print(f"❌ 回覆訊息時發生錯誤：{e}")
+        # 如果連線失敗的保底文字
+        print(f"Error: {e}")
+        reply_text = "不好意思，客服系統目前連線忙碌中，如需緊急服務請直接來電！"
+    
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=reply_text)
+    )
 
 
 @handler.add(MessageEvent, message=LocationMessage)
