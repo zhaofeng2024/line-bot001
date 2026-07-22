@@ -595,7 +595,7 @@ def handle_message(event):
         user_status[user_id] = {"mode": "ai", "time": current_time}
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text="AI 客服已重新上線！請問還有什麼我可以幫忙的嗎？")
+            TextSendMessage(text="智能客服已重新上線！請問還有什麼我可以幫忙的嗎？")
         )
         return
 
