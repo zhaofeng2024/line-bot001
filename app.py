@@ -661,7 +661,7 @@ def handle_message(event):
             return
 
 # ==========================================
-    # 狀況 4：交給 Gemini AI 處理 (三天自動失憶版)
+    # 狀況 4：交給 Gemini AI 處理 (三天自動失憶完整版)
     # ==========================================
     try:
         # 取得當下時間
@@ -697,6 +697,10 @@ def handle_message(event):
         response = chat_session.send_message(user_message)
         reply_text = response.text
 
+    # 👇 就是漏了下面這段，它是用來接住當機並回覆客人的防護網！
+    except Exception as e:
+        print(f"Error: {e}")
+        reply_text = "不好意思，客服系統忙碌中，請稍後再試。"
 
 @handler.add(MessageEvent, message=LocationMessage)
 def handle_location_message(event):
