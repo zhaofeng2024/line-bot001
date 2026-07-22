@@ -47,13 +47,10 @@ from linebot.models import (
 user_status = {} 
 
 # 設定 Gemini API 金鑰
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 # 設定 Gemini 模型與人設
-gemini_model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
-    system_instruction="你是兆豐當舖的專業客服。請用親切專業的語氣回答客人的問題。因為我們主要是幫助客人快速了解方案，回答請直接、簡潔扼要，不用過於詳細或長篇大論。"
-)
+SYSTEM_INSTRUCTION = "你是兆豐當舖的專業客服。請用親切專業的語氣回答客人的問題。因為我們主要是幫助客人快速了解方案，回答請直接、簡潔扼要，不用過於詳細或長篇大論。"
 
 # =============================================================================
 # 初始化 Flask App 與 LINE SDK
@@ -579,12 +576,9 @@ def health_check():
 # LINE 訊息事件處理
 # =============================================================================
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
-gemini_model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
-    system_instruction="你是兆豐當舖的專業客服。請用親切專業的語氣回答客人的問題。因為我們主要是幫助客人快速了解方案，回答請直接、簡潔扼要，不用過於詳細或長篇大論。"
-)
+# 建立新版 Gemini 客戶端與人設
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+SYSTEM_INSTRUCTION = "你是兆豐當舖的專業客服。請用親切專業的語氣回答客人的問題。因為我們主要是幫助客人快速了解方案，回答請直接、簡潔扼要，不用過於詳細或長篇大論。"
   
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
