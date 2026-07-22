@@ -11,6 +11,8 @@
 """
 
 import os
+import datetime  # 新增這行：用來處理時間
+import time
 import google.generativeai as genai
 import re
 import opencc
@@ -34,6 +36,22 @@ from linebot.models import (
     ButtonComponent,
     Action,
     IconComponent,
+)
+
+# ==========================================
+# 🌟 請把字典和 Gemini 設定加在這裡！
+# ==========================================
+
+# 新增這個用來記憶客人狀態的字典
+user_status = {} 
+
+# 設定 Gemini API 金鑰
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+# 設定 Gemini 模型與人設
+gemini_model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction="你是兆豐當舖的專業客服。請用親切專業的語氣回答客人的問題。因為我們主要是幫助客人快速了解方案，回答請直接、簡潔扼要，不用過於詳細或長篇大論。"
 )
 
 # =============================================================================
@@ -560,17 +578,76 @@ def health_check():
 # LINE 訊息事件處理
 # =============================================================================
 
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+gemini_model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction="你是兆豐當舖的專業客服。請用親切專業的語氣回答客人的問題。因為我們主要是幫助客人快速了解方案，回答請直接、簡潔扼要，不用過於詳細或長篇大論。"
+
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    user_message = event.message.text
+    user_id = event.source.user_id         
+    user_message = event.message.text.strip() 
     
+    # 取得當下時間的「時間戳記」（一串代表秒數的數字，方便計算時間差）
+    current_time = time.time()
+    
+    # 狀況 1：客人主動喚醒 AI
+    if user_message == "呼叫AI" or user_message == "切換AI":
+        # 把狀態改回 AI
+        user_status[user_id] = {"mode": "ai", "time": current_time}
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="AI 客服已重新上線！請問還有什麼我可以幫忙的嗎？")
+        )
+        return
+
+    # 狀況 2：客人要求轉人工
+    if "轉人工" in user_message:
+        tz = datetime.timezone(datetime.timedelta(hours=8))
+        now = datetime.datetime.now(tz)
+        current_hour = now.hour
+
+        if 0 <= current_hour < 9:
+            reply_text = "現在是休息時間，目前無人工客服在線。請您留下聯絡方式或問題，我們會在上班後第一時間回覆您！"
+        else:
+            reply_text = "請稍後，已為您通知專員，約 5 分鐘內將有專員為您服務！\n(若專員服務完畢，需重新喚醒AI，請輸入「呼叫AI」)"
+        
+        # 升級這裡！不只記錄人工模式，還把「當下的時間」記錄下來
+        user_status[user_id] = {
+            "mode": "human",
+            "time": current_time
+        } 
+        
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text=reply_text)
+        )
+        return
+
+    # 狀況 3：攔截訊息！檢查是否在人工模式，以及是否過期
+    user_info = user_status.get(user_id)
+    if user_info and user_info.get("mode") == "human":
+        # 拿出客人當初轉人工的時間
+        last_time = user_info.get("time", 0)
+        
+        # 計算經過了幾秒 (30 分鐘 = 1800 秒)
+        if (current_time - last_time) > 1800:
+            # 超過 30 分鐘了！自動幫他切換回 AI 模式
+            user_status[user_id] = {"mode": "ai", "time": current_time}
+            # 狀態已經切換，所以不需要 return，會繼續往下走到 Gemini 那裡處理！
+        else:
+            # 還在 30 分鐘內，機器人繼續已讀不回
+            return
+
+    # ==========================================
+    # 狀況 4：如果以上都不是（或超過30分鐘自動解除），就交給 Gemini AI 處理
+    # ==========================================
     try:
-        # 呼叫 Gemini 幫忙想回答
         response = gemini_model.generate_content(user_message)
         reply_text = response.text
         
     except Exception as e:
-        # 如果連線失敗的保底文字
         print(f"Error: {e}")
         reply_text = "不好意思，客服系統目前連線忙碌中，如需緊急服務請直接來電！"
     
