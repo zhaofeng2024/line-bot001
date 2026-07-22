@@ -583,7 +583,8 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 gemini_model = genai.GenerativeModel(
     model_name="gemini-1.5-flash",
     system_instruction="你是兆豐當舖的專業客服。請用親切專業的語氣回答客人的問題。因為我們主要是幫助客人快速了解方案，回答請直接、簡潔扼要，不用過於詳細或長篇大論。"
-
+)
+  
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_id = event.source.user_id         
