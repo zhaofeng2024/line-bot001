@@ -661,33 +661,41 @@ def handle_message(event):
             return
 
 # ==========================================
-# 狀況 4：交給 Gemini AI 處理 (加入記憶功能)
-# ==========================================
-try:
-    # 如果這個客人還沒有專屬的聊天室，就幫他建一個
-    if user_id not in user_chats:
-        user_chats[user_id] = client.chats.create(
-            model='gemini-3.6-flash',
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_INSTRUCTION
-            )
-        )
-    
-    # 拿出這個客人的專屬聊天室
-    chat_session = user_chats[user_id]
-    
-    # 把客人的新訊息傳進聊天室 (這樣 AI 就會記得前面的對話了)
-    response = chat_session.send_message(user_message)
-    reply_text = response.text
+    # 狀況 4：交給 Gemini AI 處理 (三天自動失憶版)
+    # ==========================================
+    try:
+        # 取得當下時間
+        current_time = time.time()
         
-    except Exception as e:
-        print(f"Error: {e}")
-        reply_text = "不好意思，客服系統目前連線忙碌中，如需緊急服務請直接來電！"
-    
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text=reply_text)
-    )
+        # 檢查客人是不是已經有聊天室了
+        if user_id in user_chats:
+            # 拿出上次講話的時間
+            last_active_time = user_chats[user_id]['last_time']
+            
+            # 3天 = 3天 * 24小時 * 60分 * 60秒 = 259200 秒
+            # 如果距離上次講話超過 3 天，就把舊記憶刪掉
+            if current_time - last_active_time > 259200:
+                del user_chats[user_id]
+        
+        # 如果這個客人還沒有聊天室，或是剛剛(因為超過三天)被刪除了，就建一個新的
+        if user_id not in user_chats:
+            user_chats[user_id] = {
+                'chat': client.chats.create(
+                    model='gemini-3.6-flash',
+                    config=types.GenerateContentConfig(
+                        system_instruction=SYSTEM_INSTRUCTION
+                    )
+                ),
+                'last_time': current_time # 記錄這次建立的時間
+            }
+        
+        # 更新最後講話的時間，並拿出專屬聊天室
+        user_chats[user_id]['last_time'] = current_time
+        chat_session = user_chats[user_id]['chat']
+        
+        # 把客人的新訊息傳進聊天室
+        response = chat_session.send_message(user_message)
+        reply_text = response.text
 
 
 @handler.add(MessageEvent, message=LocationMessage)
