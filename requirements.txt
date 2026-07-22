@@ -12,3 +12,6 @@ gunicorn==23.0.0
 
 # 簡繁中文轉換
 opencc-python-reimplemented==0.1.6
+
+# Google Gemini AI
+google-generativeai
