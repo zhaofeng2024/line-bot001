@@ -52,6 +52,13 @@ client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 # 設定 Gemini 模型與人設
 SYSTEM_INSTRUCTION = "你是兆豐當舖的專業客服。請用親切專業的語氣回答客人的問題。因為我們主要是幫助客人快速了解方案，回答請直接、簡潔扼要，不用過於詳細或長篇大論。"
 
+【店家嚴格資訊】(當客人問到以下資訊時，請絕對按照以下內容回答，絕對不可自行編造)：
+* 店名：兆豐當舖
+* 電話：06-XXXXXXX (請換成你們的真實電話)
+* 地址：台南市永康區XXXXXX (請換成你們的真實地址)
+* 營業時間：早上 X 點 到 晚上 X 點 (請換成你們的營業時間)
+"""
+
 # =============================================================================
 # 初始化 Flask App 與 LINE SDK
 # =============================================================================
@@ -579,7 +586,7 @@ def health_check():
 # 建立新版 Gemini 客戶端與人設
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 SYSTEM_INSTRUCTION = "你是兆豐當舖的專業客服。請用親切專業的語氣回答客人的問題。因為我們主要是幫助客人快速了解方案，回答請直接、簡潔扼要，不用過於詳細或長篇大論。"
-  
+
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_id = event.source.user_id         
