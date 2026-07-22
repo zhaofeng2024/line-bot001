@@ -13,7 +13,8 @@
 import os
 import datetime  # 新增這行：用來處理時間
 import time
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import re
 import opencc
 from flask import Flask, request, abort
