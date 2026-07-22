@@ -702,6 +702,10 @@ def handle_message(event):
         print(f"Error: {e}")
         reply_text = "不好意思，客服系統忙碌中，請稍後再試。"
 
+line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=reply_text)
+
 @handler.add(MessageEvent, message=LocationMessage)
 def handle_location_message(event):
     """
