@@ -591,37 +591,35 @@ def handle_message(event):
     user_id = event.source.user_id         
     user_message = event.message.text.strip() 
     
-    # 取得當下時間的「時間戳記」（一串代表秒數的數字，方便計算時間差）
+    # 取得當下時間的秒數
     current_time = time.time()
     
+    # ==========================================
     # 狀況 1：客人主動喚醒 AI
-    if user_message == "智能客服" or user_message == "切換AI":
-        # 把狀態改回 AI
+    # ==========================================
+    if user_message == "呼叫AI" or user_message == "切換AI":
         user_status[user_id] = {"mode": "ai", "time": current_time}
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text="智能客服已重新上線！請問還有什麼我可以幫忙的嗎？")
+            TextSendMessage(text="AI 客服已重新上線！請問還有什麼我可以幫忙的嗎？")
         )
         return
 
-
-    # 狀況 2：客人要求轉人工
-    # 定義多個觸發關鍵字，你可以隨時在括號裡面新增！
+    # ==========================================
+    # 狀況 2：客人要求轉人工 (多重關鍵字版)
+    # ==========================================
     human_keywords = ["轉人工", "呼叫人工", "找客服", "真人", "專員"]
     
-    # 只要客人的訊息包含上面任何一個詞，就會觸發
     if any(keyword in user_message for keyword in human_keywords):
         tz = datetime.timezone(datetime.timedelta(hours=8))
         now = datetime.datetime.now(tz)
         current_hour = now.hour
 
-        # 凌晨 0 點到 9 點的休息時間判斷
         if 0 <= current_hour < 9:
             reply_text = "現在是休息時間，目前無人工客服在線。請您留下聯絡方式或問題，我們會在上班後第一時間回覆您！"
         else:
-            reply_text = "請稍後，已為您通知專員，約 5 分鐘內將有專員為您服務！\n(若專員服務完畢，需重新喚醒智能客服，請輸入「智能客服」)"
+            reply_text = "請稍後，已為您通知專員，約 5 分鐘內將有專員為您服務！\n(若專員服務完畢，需重新喚醒AI，請輸入「呼叫AI」)"
         
-        # 記錄人工模式與當下時間
         user_status[user_id] = {
             "mode": "human",
             "time": current_time
@@ -633,26 +631,29 @@ def handle_message(event):
         )
         return
 
-    # 狀況 3：攔截訊息！檢查是否在人工模式，以及是否過期
+    # ==========================================
+    # 狀況 3：檢查是否在人工模式，以及是否超過 30 分鐘 (1800秒)
+    # ==========================================
     user_info = user_status.get(user_id)
     if user_info and user_info.get("mode") == "human":
-        # 拿出客人當初轉人工的時間
         last_time = user_info.get("time", 0)
         
-        # 計算經過了幾秒 (30 分鐘 = 1800 秒)
         if (current_time - last_time) > 1800:
-            # 超過 30 分鐘了！自動幫他切換回 AI 模式
             user_status[user_id] = {"mode": "ai", "time": current_time}
-            # 狀態已經切換，所以不需要 return，會繼續往下走到 Gemini 那裡處理！
         else:
-            # 還在 30 分鐘內，機器人繼續已讀不回
             return
 
     # ==========================================
-    # 狀況 4：如果以上都不是（或超過30分鐘自動解除），就交給 Gemini AI 處理
+    # 狀況 4：交給 Gemini AI 處理 (新版 SDK 語法)
     # ==========================================
     try:
-        response = gemini_model.generate_content(user_message)
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=user_message,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_INSTRUCTION
+            )
+        )
         reply_text = response.text
         
     except Exception as e:
